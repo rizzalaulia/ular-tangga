@@ -1,10 +1,10 @@
 # Product Requirements Document (PRD)
 # 🐍🪜 Ular Tangga — Game Android Anak-Anak
 
-**Versi:** 1.0
-**Tanggal:** 08 Agustus 2026
+**Versi:** 1.1
+**Tanggal:** 09 Agustus 2026
 **Penulis:** Rizzal Aulia Ramadhan (Master Peng) + Bejo
-**Status:** Draft
+**Status:** Revisi — setelah review desain
 
 ---
 
@@ -21,7 +21,8 @@
 9. [Fitur AI / Komputer](#9-fitur-ai--komputer)
 10. [Audio & Efek Suara](#10-audio--efek-suara)
 11. [Spesifikasi Teknis](#11-spesifikasi-teknis)
-12. [Struktur Database / Penyimpanan](#12-struktur-penyimpanan)
+    - [11.5 Progres & Koleksi](#115-progres--koleksi)
+12. [Struktur Penyimpanan](#12-struktur-penyimpanan)
 13. [Riset Aturan Ular Tangga](#13-riset-aturan-ular-tangga)
 14. [Rencana Pengembangan](#14-rencana-pengembangan)
 15. [Quality Assurance](#15-quality-assurance)
@@ -40,7 +41,7 @@
 | Platform | Android Only |
 | Koneksi Internet | Tidak diperlukan (fully offline) |
 | Monetisasi | Gratis, tanpa iklan, tanpa IAP |
-| Target Usia | 4–12 tahun (anak-anak) |
+| Target Usia | 6–10 tahun (anak-anak SD) |
 | Jumlah Pemain | 1–5 orang |
 | Bahasa | Indonesia |
 
@@ -63,17 +64,17 @@ Membuat permainan ular tangga digital yang menyenangkan, aman, dan edukatif untu
 ## 3. Target Pengguna
 
 ### Pengguna Utama
-- Anak-anak usia 4–12 tahun
+- Anak-anak usia 6–10 tahun (SD)
 
 ### Pengguna Sekunder
 - Orang tua yang ingin game aman untuk anak
-- Keluarga yang bermain bersama
+- Kakak/adik yang bermain bersama
 
 ### Persona
 
 | Persona | Usia | Kebutuhan |
 |---------|------|-----------|
-| **Dina** | 6 tahun | Mau main game seru di tablet, suka warna warni |
+| **Dina** | 7 tahun | Mau main game seru di tablet, suka warna warni |
 | **Raka** | 9 tahun | Mau tantang kakaknya main ular tangga |
 | **Bunda Sari** | 32 tahun | Mau game yang aman untuk anak, tanpa iklan |
 
@@ -89,12 +90,11 @@ Membuat permainan ular tangga digital yang menyenangkan, aman, dan edukatif untu
 
 ### 4.2 Mode 1 Pemain vs Komputer (AI)
 - Pemain manusia melawan 1–4 AI
-- AI memiliki tingkat kesulitan:
-  - **Mudah:** AI bergerak acak tanpa strategi
-  - **Sedang:** AI "beruntung" sedikit lebih sering
-  - **Sulit:** AI mendapat dadu dengan peluang angka tinggi lebih besar
+- AI bermain **fair & random murni** (dadu standar 1–6, peluang sama)
+- Tidak ada "tingkat kesulitan" — ular tangga adalah permainan keberuntungan murni, bukan skill
+- Variasi diberikan lewat **jumlah AI lawan**, bukan "AI sulit vs AI mudah"
 
-> **Catatan:** Karena ular tangga murni permainan keberuntungan, "strategi" AI hanya berupa manipulasi peluang dadu yang halus — bukan cheating yang terasa jelas.
+> **Catatan Desain:** Ular tangga itu 100% hoki. Tidak ada strategi, tidak ada skill ceiling. Membuat AI dengan dadu yang dicurangi (biased dice) hanya menciptakan ilusi kemenangan palsu dan tidak mendidik. Lebih jujur: semua pemain (manusia maupun AI) dapat dadu yang benar-benar acak.
 
 ### 4.3 Opsi Setup Game
 Pemain dapat mengatur:
@@ -102,7 +102,7 @@ Pemain dapat mengatur:
 - **Siapa saja pemainnya** (manusia vs komputer)
 - **Nama setiap pemain**
 - **Token/warna pion** (opsional)
-- **Tingkat kesulitan AI** (kalau ada AI)
+- **Jumlah pemain AI** (1–4, kalau main vs AI)
 
 ---
 
@@ -255,8 +255,8 @@ Berikut adalah aturan umum ular tangga yang berlaku di versi game ini:
 ### 7.3 Karakter Ular & Tangga
 
 - **Ular:** Desain kartun lucu, mata besar, senyum — **bukan** ular menyeramkan.
-- **Tangga:** Tangga kayi dengan anak tangga berwarna-warni.
-- **Token Pemain:** Bisa berupa hewan lucu (kucing, kelinci, anjing, bebek, katak).
+- **Tangga:** Tangga kayu dengan anak tangga berwarna-warni.
+- **Token Pemain:** Bisa berupa hewan lucu (kucing, kelinci, anjing, bebek, katak, dan bisa ditambah di update mendatang).
 
 ### 7.4 Layout Layar
 
@@ -412,7 +412,7 @@ ular-tangga/
 ├── app/
 │   ├── src/
 │   │   ├── main/
-│   │   │   ├── java/com/ular tangga/game/
+│   │   │   ├── java/com/ulartangga/game/
 │   │   │   │   ├── domain/
 │   │   │   │   │   ├── model/
 │   │   │   │   │   │   ├── Board.kt
@@ -474,7 +474,7 @@ ular-tangga/
 │   │   │   │       └── colors.xml
 │   │   │   └── AndroidManifest.xml
 │   │   └── test/
-│   │       └── java/com/ular tangga/game/
+│   │       └── java/com/ulartangga/game/
 │   │           ├── domain/
 │   │           │   ├── GameEngineTest.kt
 │   │           │   ├── BoardTest.kt
@@ -493,42 +493,36 @@ ular-tangga/
 
 ## 9. Fitur AI / Komputer
 
-### 9.1 Kemampuan AI
+### 9.1 Filosofi AI
 
-| Tingkat | Perilaku Dadu | Peluang Dapat 6 | Keterangan |
-|---------|--------------|-----------------|------------|
-| **Mudah** | Acak murni | 16.67% (standar) | Setara pemain manusia |
-| **Sedang** | Sedikit bias ke atas | ~22% | Sesekali dapat angka tinggi |
-| **Sulit** | Bias ke angka tinggi | ~30% | Sering dapat angka bagus |
+Ular tangga adalah permainan **keberuntungan murni** (pure luck). Tidak ada strategi, tidak ada skill, tidak ada decision-making. Oleh karena itu:
 
-### 9.2 Implementasi AI
+- **AI tidak memiliki "tingkat kesulitan"** — konsep ini tidak berlaku di game zero-skill
+- AI menggunakan **dadu acak murni** (`Random.nextInt(1, 7)`), persis seperti pemain manusia
+- Setiap pemain (manusia atau AI) memiliki **peluang menang yang sama** per lemparan dadu
 
-AI tidak memiliki "strategi" karena ular tangga murni keberuntungan. Yang bisa dikontrol:
+### 9.2 Variasi Mode AI
 
-```kotlin
-// Contoh implementasi biased dice untuk AI
-fun rollBiasedDice(difficulty: Difficulty): Int {
-    val random = Random.nextFloat()
-    return when (difficulty) {
-        Difficulty.EASY -> Random.nextInt(1, 7) // Standard
-        Difficulty.MEDIUM -> {
-            // Slight bias toward higher numbers
-            val biased = (random * random * 6).toInt() + 1
-            biased.coerceIn(1, 6)
-        }
-        Difficulty.HARD -> {
-            // Stronger bias
-            val biased = (random * random * random * 6).toInt() + 1
-            biased.coerceIn(1, 6)
-        }
-    }
-}
-```
+Untuk memberikan variasi permainan:
 
-### 9.3 Waktu Tunggu AI
-- AI "berpikir" selama **1–2 detik** sebelum menunjukkan hasil dadu
+| Jumlah AI | Deskripsi |
+|-----------|-----------|
+| 1 AI | 1 vs 1 dengan komputer |
+| 2 AI | 1 manusia + 2 AI (3 pemain total) |
+| 3 AI | 1 manusia + 3 AI (4 pemain total) |
+| 4 AI | 1 manusia + 4 AI (5 pemain total) |
+
+### 9.3 Karakter AI
+
+- Setiap AI memiliki **nama bot yang lucu** (contoh: "Bot Kucing", "Bot Kelinci", dll)
+- Setiap AI muncul dengan **token/avatar berbeda** agar mudah dibedakan
+- AI menampilkan **topi/topi kecil** pada token untuk menunjukkan "ini komputer"
+
+### 9.4 Waktu Tunggu AI
+- AI "berpikir" selama **1–1.5 detik** sebelum menunjukkan hasil dadu
 - Ini memberi pemain manusia waktu untuk melihat apa yang terjadi
 - Bisa di-skip dengan tap layar
+- Animasi AI berjalan **sama persis** seperti animasi pemain manusia (tidak ada spesial treatment)
 
 ---
 
@@ -587,6 +581,24 @@ fun rollBiasedDice(difficulty: Difficulty): Int {
 
 ---
 
+## 11.5 Progres & Koleksi
+
+Untuk menjaga anak-anak tetap tertarik (retensi), game menyediakan sistem progres ringan:
+
+### Statistik Pemain
+- Total permainan dimainkan
+- Total kemenangan per nama pemain
+- "Lagi hoki!" — reaksi saat pemain menang beberapa kali berturut-turut
+
+### Koleksi Token (Coming Soon / Update)
+- 5 token bawaan (gratis, semua terbuka dari awal)
+- Bisa ditambah token hewan baru di update mendatang (panda, kura-kura, burung hantu)
+- Tampilan token tetap sederhana — tidak ada sistem "buka dengan koin" atau IAP
+
+> **Catatan Desain:** Semua token tersedia gratis dari awal. Progression di sini murni untuk rasa pencapaian, bukan untuk monetisasi. Game tetap zero-ads, zero-IAP.
+
+---
+
 ## 12. Struktur Penyimpanan
 
 ### 12.1 SharedPreferences
@@ -597,18 +609,12 @@ fun rollBiasedDice(difficulty: Difficulty): Int {
     "sound_effects": true,
     "background_music": true,
     "master_volume": 80,
-    "player_names": ["Pemain 1", "Pemain 2"],
-    "ai_difficulty": "EASY"
+    "player_names": ["Pemain 1", "Pemain 2"]
   },
-  "last_game": {
-    "board_layout": "STANDARD",
-    "players": [
-      {"name": "Raka", "color": "BLUE", "is_ai": false},
-      {"name": "AI Bot", "color": "RED", "is_ai": true}
-    ],
-    "positions": [45, 23],
-    "current_turn": 0,
-    "timestamp": "2026-08-08T10:30:00Z"
+  "stats": {
+    "total_games_played": 25,
+    "total_wins": {"Raka": 12, "Dina": 10, "AI Bot": 3},
+    "last_played": "2026-08-08T10:30:00Z"
   }
 }
 ```
@@ -618,8 +624,8 @@ fun rollBiasedDice(difficulty: Difficulty): Int {
 | Data | Penyimpanan | Keterangan |
 |------|-------------|------------|
 | Pengaturan | SharedPreferences | Persisten |
-| Posisi terakhir | SharedPreferences | Auto-save saat pause |
-| Skor kemenangan | SharedPreferences | Riwayat menang per pemain |
+| Posisi terakhir | SharedPreferences (in-memory) | Auto-save saat pause, reset saat game selesai |
+| Statistik pemain | SharedPreferences | Total main & total menang per nama pemain |
 | High score | Tidak ada | Game ini tanpa skor |
 
 ---
@@ -650,7 +656,7 @@ Dibawa ke Inggris pada tahun 1890-an dan menjadi populer di seluruh dunia.
 - **Rata-rata giliran untuk menang:** ~39 lemparan dadu (dari posisi 1 ke 100)
 - **Rata-rata durasi permainan:** 15–45 menit
 - **Peluang menang per giliran:** Bergantung posisi saat ini
-- **Game selalu menghasilkan pemenang:** Tidak ada kemungkinan draw
+- **Game selalu menghasilkan pemenang.**
 
 ---
 
@@ -682,12 +688,14 @@ Dibawa ke Inggris pada tahun 1890-an dan menjadi populer di seluruh dunia.
 - [ ] Background music
 
 ### Fase 4: AI & Polish (Minggu 6)
-- [ ] AI player (3 level kesulitan)
+- [ ] AI player (dadunya acak murni)
+- [ ] Nama & avatar lucu untuk bot AI
+- [ ] Statistik menang/kalah per pemain
 - [ ] Animasi menang (confetti)
 - [ ] Auto-save game
 - [ ] Pengaturan (volume, dll)
 - [ ] How to play screen
-- [ ] Testing di berbagai device
+- [ ] Testing di berbagai device (termasuk low-end)
 
 ### Fase 5: Release (Minggu 7)
 - [ ] Bug fixing
@@ -715,20 +723,22 @@ Dibawa ke Inggris pada tahun 1890-an dan menjadi populer di seluruh dunia.
 | 8 | Lempar melebihi 100 | Pion tetap di posisi sebelumnya |
 | 9 | Lempar tepat sampai 100 | Pemain menang, animasi kemenangan |
 | 10 | Multiplayer giliran | Urutan giliran benar, clockwise |
-| 11 | AI bermain | AI bergerak dengan benar sesuai level |
+| 11 | AI bermain | AI bergerak dengan dadu acak murni, animasi normal |
 | 12 | Auto-save | Game tersimpan saat minimize |
-| 13 | Resume game | Posisi dan giliran ter恢复 correctly |
+| 13 | Resume game | Posisi dan giliran pulih dengan benar |
 | 14 | Rotate device | Layout menyesuaikan, tidak crash |
 | 15 | 5 pemain + AI | Semua berjalan tanpa bug |
 
 ### 15.2 Testing Device
 
-| Device | Android Version | Resolusi |
-|--------|----------------|----------|
-| Samsung Galaxy A12 | Android 11 | 720 × 1600 |
-| Xiaomi Redmi 9 | Android 10 | 1080 × 2340 |
-| Pixel 6 | Android 14 | 1080 × 2400 |
-| Tablet Samsung Tab A7 | Android 11 | 1200 × 2000 |
+| Device | Android Version | RAM | Resolusi |
+|--------|----------------|-----|----------|
+| Samsung Galaxy A12 | Android 11 | 4 GB | 720 × 1600 |
+| Xiaomi Redmi 9 | Android 10 | 4 GB | 1080 × 2340 |
+| Realme C2 (low-end) | Android 9 | 2 GB | 720 × 1560 |
+| Samsung Galaxy J2 (low-end) | Android 7 | 2 GB | 540 × 960 |
+| Pixel 6 | Android 14 | 8 GB | 1080 × 2400 |
+| Tablet Samsung Tab A7 | Android 11 | 3 GB | 1200 × 2000 |
 
 ---
 
@@ -736,11 +746,11 @@ Dibawa ke Inggris pada tahun 1890-an dan menjadi populer di seluruh dunia.
 
 | Risiko | Dampak | Mitigasi |
 |--------|--------|----------|
-| Anak bosan (game keberuntungan) | Retensi rendah | Animasi seru, variasi papan, mode AI |
-| Device low-end lag | UX buruk | Optimasi animasi, rendering sederhana |
-| Bug auto-save corrupt | Data hilang | Backup data + validasi saat load |
+| Anak bosan (game keberuntungan) | Retensi rendah | Animasi seru, token lucu, statistik kemenangan, mode vs AI |
+| Device low-end lag | UX buruk | Optimasi animasi, rendering sederhana, target 60fps |
+| Bug auto-save corrupt | Data hilang | In-memory save + validasi saat resume |
 | Sound tidak playback | Pengalaman kurang | Fallback tanpa sound, graceful degradation |
-| Play Store rejection | Delay release | Ikuti semua guideline Google Play |
+| Play Store rejection | Delay release | Ikuti semua guideline Google Play Family |
 
 ---
 
