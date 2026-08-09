@@ -8,6 +8,7 @@ data class GameState(
     val phase: GamePhase,
     val players: List<Player>,
     val currentPlayerIndex: Int,
+    val turnStartPosition: Int = 0,   // Snapshot posisi awal giliran (buat aturan 3x6)
     val diceResult: Int? = null,
     val event: GameEvent? = null,
     val winner: Player? = null,
