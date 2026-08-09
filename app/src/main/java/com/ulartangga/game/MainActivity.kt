@@ -53,8 +53,9 @@ fun MainApp(gameViewModel: GameViewModel) {
         }
 
         is Screen.Setup -> {
+            val setupScreen = currentScreen as Screen.Setup
             SetupScreen(
-                isVsAI = currentScreen.isVsAI,
+                isVsAI = setupScreen.isVsAI,
                 playersSetup = playersSetup,
                 onUpdatePlayerName = { index, name ->
                     gameViewModel.updatePlayerName(index, name)

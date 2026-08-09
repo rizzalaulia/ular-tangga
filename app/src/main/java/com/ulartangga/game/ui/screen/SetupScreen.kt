@@ -10,6 +10,8 @@ import androidx.compose.ui.unit.sp
 import com.ulartangga.game.domain.model.PlayerConfig
 import com.ulartangga.game.domain.model.TokenType
 
+@OptIn(ExperimentalMaterial3Api::class)
+
 /**
  * Layar setup game — pilih jumlah pemain, nama, token, lawan AI.
  */

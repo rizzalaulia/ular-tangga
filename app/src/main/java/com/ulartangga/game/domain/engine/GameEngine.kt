@@ -123,23 +123,24 @@ class GameEngine(
         newPlayers[state.currentPlayerIndex] = movedPlayer
 
         // --- ATURAN: Dapat 6 → giliran lagi (turnStartPosition tetap) ---
-        val (phase, nextIndex, nextTurnStart, extraMsg) = if (roll == 6) {
+        val phase: GamePhase
+        val nextIndex: Int
+        val nextTurnStart: Int
+        val extraMsg: String
+
+        if (roll == 6) {
             // Same player rolls again — turnStartPosition stays
-            com.ulartangga.game.domain.model.Triple(
-                GamePhase.EXTRA_TURN,
-                state.currentPlayerIndex,
-                state.turnStartPosition,
-                "\n\uD83C\uDFB2 DAPAT 6! Lempar lagi!"
-            )
+            phase = GamePhase.EXTRA_TURN
+            nextIndex = state.currentPlayerIndex
+            nextTurnStart = state.turnStartPosition
+            extraMsg = "\n\uD83C\uDFB2 DAPAT 6! Lempar lagi!"
         } else {
             // Next player's turn — snapshot their position
             val nextIdx = nextPlayerIndex(state.currentPlayerIndex, state.players.size)
-            com.ulartangga.game.domain.model.Triple(
-                GamePhase.ROLLING,
-                nextIdx,
-                newPlayers[nextIdx].position,
-                ""
-            )
+            phase = GamePhase.ROLLING
+            nextIndex = nextIdx
+            nextTurnStart = newPlayers[nextIdx].position
+            extraMsg = ""
         }
 
         return state.copy(
@@ -158,6 +159,3 @@ class GameEngine(
         return (current + 1) % totalPlayers
     }
 }
-
-/** Helper triple — menghindari bentrok nama dengan Kotlin stdlib Triple */
-data class Triple<A, B, C>(val first: A, val second: B, val third: C)
