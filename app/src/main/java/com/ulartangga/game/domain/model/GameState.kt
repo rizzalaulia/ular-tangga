@@ -2,25 +2,28 @@ package com.ulartangga.game.domain.model
 
 /**
  * Status game saat ini — immutable state.
- * UI membaca dari sini dan gak bisa mengubah langsung.
  */
 data class GameState(
     val phase: GamePhase,
     val players: List<Player>,
     val currentPlayerIndex: Int,
-    val turnStartPosition: Int = 0,   // Snapshot posisi awal giliran (buat aturan 3x6)
+    val turnStartPosition: Int = 0,
     val diceResult: Int? = null,
     val event: GameEvent? = null,
     val winner: Player? = null,
-    val message: String = ""
+    val message: String = "",
+    /** Posisi intermediate untuk animasi stepping (inclusive start → exclusive end) */
+    val stepPath: List<Int> = emptyList(),
+    /** Index terakhir yang sudah dianimasi di stepPath (-1 = belum mulai) */
+    val stepIndex: Int = -1
 )
 
 enum class GamePhase {
-    SETUP,              // Pilih mode, pemain, nama
-    ROLLING,            // Menunggu pemain lempar dadu / AI "berpikir"
-    MOVING,             // Pion sedang bergerak (animasi)
-    EXTRA_TURN,         // Dapat 6 → giliran tambahan
-    GAME_OVER           // Ada pemenang
+    SETUP,
+    ROLLING,
+    ANIMATING,          // Pion sedang animasi step-by-step
+    EXTRA_TURN,
+    GAME_OVER
 }
 
 sealed class GameEvent {

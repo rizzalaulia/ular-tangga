@@ -79,6 +79,8 @@ dependencies {
     // Core KTX
     implementation("androidx.core:core-ktx:1.12.0")
 
+    // Tidak perlu tambahan icon library
+
     // Navigation (jika dibutuhkan)
     // implementation("androidx.navigation:navigation-compose:2.7.6")
 

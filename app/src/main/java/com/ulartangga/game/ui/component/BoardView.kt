@@ -18,13 +18,9 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.sp
 import com.ulartangga.game.domain.model.Board
 import com.ulartangga.game.domain.model.Player
+import com.ulartangga.game.domain.model.TokenType
 import com.ulartangga.game.ui.theme.*
 
-/**
- * Papan permainan ular tangga 10x10 — zigzag layout.
- * Ular: badan tebal zigzag + kepala segitiga + mata.
- * Tangga: dua tiang vertikal + anak tangga horizontal.
- */
 @Composable
 fun BoardView(
     board: Board,
@@ -38,210 +34,141 @@ fun BoardView(
         val tileH = size.height / 10
 
         fun tileX(col: Int) = col * tileW
-        fun tileY(row: Int) = (9 - row) * tileH  // row 0 = bawah
+        fun tileY(row: Int) = (9 - row) * tileH
         fun tileCX(col: Int) = tileX(col) + tileW / 2
         fun tileCY(row: Int) = tileY(row) + tileH / 2
 
         // ─── KOTAK PAPAN ───
         board.tiles.forEach { tile ->
-            val x = tileX(tile.col)
-            val y = tileY(tile.row)
-
-            drawRect(
-                color = if (tile.number % 2 == 0) TileEven else TileOdd,
-                topLeft = Offset(x, y),
-                size = Size(tileW, tileH)
-            )
-            drawRect(
-                color = Color.Gray.copy(alpha = 0.25f),
-                topLeft = Offset(x, y),
-                size = Size(tileW, tileH),
-                style = Stroke(width = 0.5f)
-            )
-            // Nomor kotak
+            val x = tileX(tile.col); val y = tileY(tile.row)
+            drawRect(color = if (tile.number % 2 == 0) TileEven else TileOdd,
+                topLeft = Offset(x, y), size = Size(tileW, tileH))
+            drawRect(color = Color.Gray.copy(alpha = 0.25f), topLeft = Offset(x, y),
+                size = Size(tileW, tileH), style = Stroke(width = 0.5f))
             val numText = textMeasurer.measure("${tile.number}", TextStyle(fontSize = 7.sp))
             drawText(numText, topLeft = Offset(x + 2f, y + 1f))
         }
 
-        // ─── ULAR (badan zigzag tebal + kepala segitiga + mata) ───
-        board.snakes.forEach { snake ->
-            val head = board.tileAt(snake.head)
-            val tail = board.tileAt(snake.tail)
-
-            val hx = tileCX(head.col)
-            val hy = tileCY(head.row)
-            val tx = tileCX(tail.col)
-            val ty = tileCY(tail.row)
-
-            val dx = tx - hx
-            val dy = ty - hy
-            val dist = kotlin.math.sqrt(dx * dx + dy * dy)
-
-            if (dist < 1f) return@forEach
-
-            // Badan ular: path zigzag tebal
-            val bodyPath = Path()
-            val perpX = -dy / dist  // perpendicular untuk zigzag
-            val perpY = dx / dist
-            val amplitude = tileW * 0.25f  // lebar zigzag
-            val segments = (dist / (tileW * 0.5f)).coerceIn(3f, 12f).toInt()
-
-            bodyPath.moveTo(hx, hy)
-            for (i in 1..segments) {
-                val t = i.toFloat() / segments
-                val bx = hx + dx * t
-                val by = hy + dy * t
-                val zigzag = if (i % 2 == 0) amplitude else -amplitude
-                bodyPath.lineTo(bx + perpX * zigzag, by + perpY * zigzag)
-            }
-            bodyPath.lineTo(tx, ty)
-
-            // Bayangan badan
-            drawPath(bodyPath, color = SnakeRed.copy(alpha = 0.25f),
-                style = Stroke(width = tileW * 0.18f, cap = StrokeCap.Round, join = StrokeJoin.Round))
-            // Badan utama
-            drawPath(bodyPath, color = SnakeRed,
-                style = Stroke(width = tileW * 0.12f, cap = StrokeCap.Round, join = StrokeJoin.Round))
-            // Garis tengah (detail)
-            drawPath(bodyPath, color = SnakeRed.copy(alpha = 0.5f),
-                style = Stroke(width = tileW * 0.04f, cap = StrokeCap.Round, join = StrokeJoin.Round))
-
-            // Kepala ular — segitiga di ujung atas
-            val headSize = tileW * 0.22f
-            val headAngle = kotlin.math.atan2(dy, dx)
-            val headPath = Path().apply {
-                // Titik puncak segitiga (arah maju)
-                val tipX = hx + kotlin.math.cos(headAngle).toFloat() * headSize * 0.4f
-                val tipY = hy + kotlin.math.sin(headAngle).toFloat() * headSize * 0.4f
-                // Dua sisi segitiga
-                val a1 = headAngle + Math.PI.toFloat() * 0.6f
-                val a2 = headAngle - Math.PI.toFloat() * 0.6f
-                moveTo(tipX, tipY)
-                lineTo(
-                    hx + kotlin.math.cos(a1.toDouble()).toFloat() * headSize,
-                    hy + kotlin.math.sin(a1.toDouble()).toFloat() * headSize
-                )
-                lineTo(
-                    hx + kotlin.math.cos(a2.toDouble()).toFloat() * headSize,
-                    hy + kotlin.math.sin(a2.toDouble()).toFloat() * headSize
-                )
-                close()
-            }
-
-            drawPath(headPath, color = SnakeRed)
-            drawPath(headPath, color = Color.White.copy(alpha = 0.3f),
-                style = Stroke(width = 1.5f))
-
-            // Mata ular (dua titik putih di sisi kepala)
-            val eyeOffset = headSize * 0.5f
-            val eyeA1 = headAngle + Math.PI.toFloat() * 0.35f
-            val eyeA2 = headAngle - Math.PI.toFloat() * 0.35f
-            val eyeR = headSize * 0.15f
-            drawCircle(Color.White, eyeR, Offset(
-                hx + kotlin.math.cos(eyeA1.toDouble()).toFloat() * eyeOffset,
-                hy + kotlin.math.sin(eyeA1.toDouble()).toFloat() * eyeOffset
-            ))
-            drawCircle(Color.White, eyeR, Offset(
-                hx + kotlin.math.cos(eyeA2.toDouble()).toFloat() * eyeOffset,
-                hy + kotlin.math.sin(eyeA2.toDouble()).toFloat() * eyeOffset
-            ))
-            // Pupil
-            val pupilR = eyeR * 0.5f
-            drawCircle(Color.Black, pupilR, Offset(
-                hx + kotlin.math.cos(eyeA1.toDouble()).toFloat() * eyeOffset * 1.1f,
-                hy + kotlin.math.sin(eyeA1.toDouble()).toFloat() * eyeOffset * 1.1f
-            ))
-            drawCircle(Color.Black, pupilR, Offset(
-                hx + kotlin.math.cos(eyeA2.toDouble()).toFloat() * eyeOffset * 1.1f,
-                hy + kotlin.math.sin(eyeA2.toDouble()).toFloat() * eyeOffset * 1.1f
-            ))
-        }
-
-        // ─── TANGGA (dua tiang + anak tangga) ───
+        // ─── TANGGA ───
         board.ladders.forEach { ladder ->
             val bottom = board.tileAt(ladder.bottom)
             val top = board.tileAt(ladder.top)
-
-            val bx = tileCX(bottom.col)
-            val by = tileCY(bottom.row)
-            val tx = tileCX(top.col)
-            val ty = tileCY(top.row)
-
-            val dx = tx - bx
-            val dy = ty - by
+            val bx = tileCX(bottom.col); val by = tileCY(bottom.row)
+            val tx = tileCX(top.col); val ty = tileCY(top.row)
+            val dx = tx - bx; val dy = ty - by
             val dist = kotlin.math.sqrt(dx * dx + dy * dy)
             if (dist < 1f) return@forEach
+            val px = -dy / dist; val py = dx / dist
+            val hw = tileW * 0.16f
+            val stemW = tileW * 0.045f
+            val rungs = (dist / (tileW * 0.4f)).coerceIn(3.0f, 15.0f).toInt()
 
-            // Vektor tegak lurus (untuk lebar tangga)
-            val px = -dy / dist
-            val py = dx / dist
-            val halfWidth = tileW * 0.18f  // lebar tangga
-            val rungCount = (dist / (tileW * 0.35f)).coerceIn(4f, 15f).toInt()
-
-            // Dua tiang vertikal
-            val stemWidth = tileW * 0.04f
-            drawLine(LadderBrown, Offset(bx - px * halfWidth, by - py * halfWidth),
-                Offset(tx - px * halfWidth, ty - py * halfWidth), stemWidth)
-            drawLine(LadderBrown, Offset(bx + px * halfWidth, by + py * halfWidth),
-                Offset(tx + px * halfWidth, ty + py * halfWidth), stemWidth)
-
-            // Anak tangga (rungs)
-            for (i in 1 until rungCount) {
-                val t = i.toFloat() / rungCount
-                val rx = bx + dx * t
-                val ry = by + dy * t
-                drawLine(LadderBrown,
-                    Offset(rx - px * halfWidth, ry - py * halfWidth),
-                    Offset(rx + px * halfWidth, ry + py * halfWidth),
-                    stemWidth)
+            drawLine(LadderBrown, Offset(bx - px * hw, by - py * hw),
+                Offset(tx - px * hw, ty - py * hw), stemW)
+            drawLine(LadderBrown, Offset(bx + px * hw, by + py * hw),
+                Offset(tx + px * hw, ty + py * hw), stemW)
+            for (i in 1 until rungs) {
+                val t = i.toFloat() / rungs
+                val rx = bx + dx * t; val ry = by + dy * t
+                drawLine(LadderBrown, Offset(rx - px * hw, ry - py * hw),
+                    Offset(rx + px * hw, ry + py * hw), stemW)
             }
-
-            // Penanda kaki tangga (kotak kecil coklat di bawah)
-            drawRect(
-                color = LadderBrown.copy(alpha = 0.3f),
-                topLeft = Offset(bx - halfWidth, by - halfWidth * 0.5f),
-                size = Size(halfWidth * 2, halfWidth)
-            )
         }
 
-        // ─── TOKEN PEMAIN ───
+        // ─── ULAR CARTOON ───
+        board.snakes.forEach { snake ->
+            drawCartoonSnake(snake.head, snake.tail, tileW, tileH, board)
+        }
+
+        // ─── TOKEN PEMAIN (emoji) ───
         players.forEach { player ->
             if (player.position in 1..100) {
                 val t = board.tileAt(player.position)
-                val cx = tileCX(t.col)
-                val cy = tileCY(t.row)
-
-                val sameTile = players.count { it.position == player.position && it.position > 0 }
+                val cx = tileCX(t.col); val cy = tileCY(t.row)
+                val sameTile = players.count { it.position == player.position }
                 val myIdx = players.filter { it.position == player.position }.indexOf(player)
+                val offX = when { sameTile == 1 -> 0f; myIdx == 0 -> -tileW*0.2f; myIdx == 1 -> tileW*0.2f; myIdx == 2 -> -tileW*0.2f; else -> tileW*0.2f }
+                val offY = if (sameTile <= 2) -tileH*0.2f else tileH*0.2f
 
-                val offX = when {
-                    sameTile == 1 -> 0f
-                    myIdx == 0 -> -tileW * 0.2f
-                    myIdx == 1 -> tileW * 0.2f
-                    myIdx == 2 -> -tileW * 0.2f
-                    else -> tileW * 0.2f
-                }
-                val offY = when {
-                    sameTile <= 2 -> -tileH * 0.25f
-                    myIdx >= 2 -> tileH * 0.25f
-                    else -> -tileH * 0.25f
-                }
-
-                val tokenR = tileW * 0.16f
-                val tokenColor = TokenColors[player.tokenIndex]
-
-                // Bayangan token (buat depth)
-                drawCircle(Color.Black.copy(alpha = 0.2f), tokenR,
-                    Offset(cx + offX + 2f, cy + offY + 2f))
-                // Token utama
-                drawCircle(tokenColor, tokenR, Offset(cx + offX, cy + offY))
-                // Border putih
-                drawCircle(Color.White, tokenR, Offset(cx + offX, cy + offY),
-                    style = Stroke(width = 2f))
-                // Highlight (gradient effect — simple white arc top-left)
-                drawCircle(Color.White.copy(alpha = 0.3f), tokenR * 0.6f,
-                    Offset(cx + offX - tokenR * 0.2f, cy + offY - tokenR * 0.2f))
+                val emoji = TokenType.entries[player.tokenIndex].emoji
+                val toDraw = if (player.isAI) "${emoji}\uD83E\uDD16" else emoji
+                val tokenText = textMeasurer.measure(toDraw, TextStyle(fontSize = (tileW / size.width * 50).sp))
+                drawText(tokenText, topLeft = Offset(
+                    cx - tokenText.size.width / 2 + offX,
+                    cy - tokenText.size.height / 2 + offY
+                ))
             }
         }
     }
+}
+
+private fun DrawScope.drawCartoonSnake(
+    headNum: Int, tailNum: Int,
+    tileW: Float, tileH: Float,
+    board: Board
+) {
+    val headTile = board.tileAt(headNum)
+    val tailTile = board.tileAt(tailNum)
+
+    val hx = headTile.col * tileW + tileW / 2
+    val hy = (9 - headTile.row) * tileH + tileH / 2
+    val tx = tailTile.col * tileW + tileW / 2
+    val ty = (9 - tailTile.row) * tileH + tileH / 2
+
+    val dx = tx - hx; val dy = ty - hy
+    val dist = kotlin.math.sqrt(dx * dx + dy * dy)
+    if (dist < 1f) return
+
+    val perpX = -dy / dist; val perpY = dx / dist
+    val halfWidth = tileW * 0.12f
+
+    // Badan zigzag
+    val bodyPath = Path()
+    val segCount = (dist / (tileW * 0.6f)).coerceIn(4.0f, 10.0f).toInt()
+    bodyPath.moveTo(hx, hy)
+    for (i in 1..segCount) {
+        val t = i.toFloat() / segCount
+        val bx = hx + dx * t; val by = hy + dy * t
+        val wave = if (i % 2 == 0) halfWidth * 0.6f else -halfWidth * 0.6f
+        bodyPath.lineTo(bx + perpX * wave, by + perpY * wave)
+    }
+    bodyPath.lineTo(tx, ty)
+
+    drawPath(bodyPath, color = Color(0xFFBF360C).copy(alpha = 0.3f),
+        style = Stroke(width = halfWidth * 2.2f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+    drawPath(bodyPath, color = SnakeRed,
+        style = Stroke(width = halfWidth * 1.8f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+    drawPath(bodyPath, color = Color(0xFFD84315),
+        style = Stroke(width = halfWidth * 0.6f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+
+    // Kepala
+    val headAngle = kotlin.math.atan2(dy, dx).toFloat()
+    val headR = halfWidth * 1.3f
+    val headCX = hx + kotlin.math.cos(headAngle) * headR * 0.5f
+    val headCY = hy + kotlin.math.sin(headAngle) * headR * 0.5f
+    drawCircle(SnakeRed, headR, Offset(headCX, headCY))
+
+    // Mata
+    val eyeOff = headR * 0.6f
+    val ea1 = headAngle + 0.7f; val ea2 = headAngle - 0.7f
+    val eyeR = headR * 0.3f
+    drawCircle(Color.White, eyeR, Offset(headCX + kotlin.math.cos(ea1)*eyeOff, headCY + kotlin.math.sin(ea1)*eyeOff))
+    drawCircle(Color.White, eyeR, Offset(headCX + kotlin.math.cos(ea2)*eyeOff, headCY + kotlin.math.sin(ea2)*eyeOff))
+    val pR = eyeR * 0.5f
+    drawCircle(Color.Black, pR, Offset(headCX + kotlin.math.cos(ea1)*eyeOff*1.15f, headCY + kotlin.math.sin(ea1)*eyeOff*1.15f))
+    drawCircle(Color.Black, pR, Offset(headCX + kotlin.math.cos(ea2)*eyeOff*1.15f, headCY + kotlin.math.sin(ea2)*eyeOff*1.15f))
+
+    // Lidah bercabang
+    val tongueLen = headR * 0.8f
+    val tipX = headCX + kotlin.math.cos(headAngle) * (headR + tongueLen)
+    val tipY = headCY + kotlin.math.sin(headAngle) * (headR + tongueLen)
+    val baseX = headCX + kotlin.math.cos(headAngle) * headR
+    val baseY = headCY + kotlin.math.sin(headAngle) * headR
+    drawLine(Color(0xFFE53935), Offset(baseX, baseY), Offset(tipX, tipY), 1.5f)
+    val forkLen = tongueLen * 0.5f
+    val f1 = headAngle + 0.35f; val f2 = headAngle - 0.35f
+    drawLine(Color(0xFFE53935), Offset(tipX, tipY),
+        Offset(tipX + kotlin.math.cos(f1)*forkLen, tipY + kotlin.math.sin(f1)*forkLen), 1.5f)
+    drawLine(Color(0xFFE53935), Offset(tipX, tipY),
+        Offset(tipX + kotlin.math.cos(f2)*forkLen, tipY + kotlin.math.sin(f2)*forkLen), 1.5f)
 }

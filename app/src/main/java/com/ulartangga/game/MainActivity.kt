@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
 import com.ulartangga.game.ui.screen.*
 import com.ulartangga.game.ui.theme.UlarTanggaTheme
 import com.ulartangga.game.ui.viewmodel.GameViewModel
@@ -35,6 +36,7 @@ fun MainApp(gameViewModel: GameViewModel) {
 
     val gameState by gameViewModel.gameState.collectAsState()
     val playersSetup by gameViewModel.playersSetup.collectAsState()
+    val isAnimating by gameViewModel.isAnimating.collectAsState()
 
     when (currentScreen) {
         Screen.Home -> {
@@ -83,7 +85,13 @@ fun MainApp(gameViewModel: GameViewModel) {
                 GameScreen(
                     gameState = state,
                     isCurrentPlayerAI = currentPlayer.isAI,
+                    isAnimating = isAnimating,
                     onRollDice = { gameViewModel.rollDice() },
+                    onRestart = {
+                        gameViewModel.resetGame()
+                        // Restart dengan konfigurasi yang sama: langsung start game baru
+                        // TODO: simpan last config
+                    },
                     onQuit = {
                         gameViewModel.resetGame()
                         currentScreen = Screen.Home

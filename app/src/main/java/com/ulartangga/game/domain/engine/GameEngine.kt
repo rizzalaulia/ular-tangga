@@ -9,153 +9,133 @@ import com.ulartangga.game.domain.model.*
 class GameEngine(
     private val dice: Dice = Dice()
 ) {
-    /**
-     * Memulai game baru dari config.
-     */
     fun startGame(config: GameConfig): GameState {
         val players = config.players.map { cfg ->
-            Player(
-                name = if (cfg.isAI) cfg.aiName else cfg.name,
-                tokenIndex = cfg.tokenIndex,
-                isAI = cfg.isAI,
-                position = 0,
-                consecutiveSixes = 0,
-                hasEnteredBoard = false
-            )
+            Player(name = if (cfg.isAI) cfg.aiName else cfg.name,
+                tokenIndex = cfg.tokenIndex, isAI = cfg.isAI)
         }
         return GameState(
-            phase = GamePhase.ROLLING,
-            players = players,
-            currentPlayerIndex = 0,
-            turnStartPosition = 0,
+            phase = GamePhase.ROLLING, players = players,
+            currentPlayerIndex = 0, turnStartPosition = 0,
             message = "Giliran ${players.first().name}!"
         )
     }
 
-    /**
-     * Memproses lempar dadu untuk current player.
-     * Semua aturan permainan diterapkan di sini.
-     */
     fun processDiceRoll(state: GameState): GameState {
         val roll = dice.roll()
         val player = state.players[state.currentPlayerIndex]
         val sixCount = if (roll == 6) player.consecutiveSixes + 1 else 0
 
-        // --- ATURAN: 3x6 berturut-turut ---
-        // Pion kembali ke posisi AWAL GILIRAN (bukan posisi setelah 2x6)
+        // ATURAN: 3x6 berturut-turut
         if (sixCount >= 3) {
-            val resetPlayer = player.copy(
-                position = state.turnStartPosition,
-                consecutiveSixes = 0
-            )
-            val newPlayers = state.players.toMutableList()
-            newPlayers[state.currentPlayerIndex] = resetPlayer
+            val resetPlayer = player.copy(position = state.turnStartPosition, consecutiveSixes = 0)
+            val newPlayers = state.players.toMutableList().also { it[state.currentPlayerIndex] = resetPlayer }
             val nextIndex = nextPlayerIndex(state.currentPlayerIndex, state.players.size)
-
             return state.copy(
-                phase = GamePhase.MOVING,
-                players = newPlayers,
-                currentPlayerIndex = nextIndex,
-                turnStartPosition = newPlayers[nextIndex].position,
-                diceResult = roll,
+                phase = GamePhase.ROLLING, players = newPlayers, currentPlayerIndex = nextIndex,
+                turnStartPosition = newPlayers[nextIndex].position, diceResult = roll,
                 event = GameEvent.ThreeSixesBusted,
-                message = "${player.name} dapat 6 tiga kali! Giliran batal. Kembali ke kotak ${state.turnStartPosition}."
+                message = "${player.name} dapat 6 tiga kali! Giliran batal. Kembali ke ${state.turnStartPosition}."
             )
         }
 
-        // --- ATURAN: Pion bergerak maju ---
-        val newPosition = player.position + roll
+        // Hitung path langkah (untuk animasi stepping)
+        val startPos = player.position
+        val newPosition = startPos + roll
 
-        // --- ATURAN: Overshoot kotak 100 ---
+        // Overshoot kotak 100
         if (newPosition > Board().size) {
-            val newPlayers = state.players.toMutableList()
-            newPlayers[state.currentPlayerIndex] = player.copy(consecutiveSixes = sixCount)
-
-            val nextIndex = if (roll == 6) state.currentPlayerIndex
-                           else nextPlayerIndex(state.currentPlayerIndex, state.players.size)
-
+            val newPlayers = state.players.toMutableList().also { it[state.currentPlayerIndex] = player.copy(consecutiveSixes = sixCount) }
+            val nextIndex = if (roll == 6) state.currentPlayerIndex else nextPlayerIndex(state.currentPlayerIndex, state.players.size)
             return state.copy(
-                phase = GamePhase.MOVING,
-                players = newPlayers,
-                currentPlayerIndex = nextIndex,
-                turnStartPosition = newPlayers[nextIndex].position,
-                diceResult = roll,
+                phase = GamePhase.ROLLING, players = newPlayers, currentPlayerIndex = nextIndex,
+                turnStartPosition = newPlayers[nextIndex].position, diceResult = roll,
                 event = GameEvent.Overshoot,
-                message = "Harus tepat di 100! ${player.name} tetap di ${player.position}."
+                message = "Harus tepat di 100! ${player.name} tetap di ${startPos}."
             )
         }
 
-        // --- ATURAN: Mendarat tepat di 100 → MENANG ---
+        // Build step path: [startPos+1, startPos+2, ..., target]
+        val stepPath = (startPos + 1..newPosition).toList()
+
+        // Menang tepat di 100
         if (newPosition == Board().size) {
             val winner = player.copy(position = newPosition)
-            val newPlayers = state.players.toMutableList()
-            newPlayers[state.currentPlayerIndex] = winner
-
+            val newPlayers = state.players.toMutableList().also { it[state.currentPlayerIndex] = winner }
             return state.copy(
-                phase = GamePhase.GAME_OVER,
-                players = newPlayers,
-                turnStartPosition = newPosition,
-                diceResult = roll,
-                event = GameEvent.Won(winner),
-                winner = winner,
-                message = "\uD83C\uDF89 ${player.name} MENANG!"
+                phase = GamePhase.ANIMATING, players = newPlayers, diceResult = roll,
+                event = GameEvent.Won(winner), winner = winner,
+                message = "\uD83C\uDF89 ${player.name} MENANG!",
+                stepPath = stepPath, stepIndex = -1,
+                currentPlayerIndex = state.currentPlayerIndex
             )
         }
 
-        // --- ATURAN: Ular atau Tangga ---
+        // Cek ular/tangga
         val board = Board()
         val afterSnakeOrLadder = board.checkSnakeOrLadder(newPosition)
-
-        val (finalPosition, event, msg) = if (afterSnakeOrLadder != null) {
-            if (afterSnakeOrLadder > newPosition) {
+        val (finalPos, event, msg) = when {
+            afterSnakeOrLadder != null && afterSnakeOrLadder > newPosition ->
                 Triple(afterSnakeOrLadder, GameEvent.ClimbedLadder(newPosition, afterSnakeOrLadder),
                     "\uD83E\uDE9C ${player.name} naik tangga! ${newPosition} → ${afterSnakeOrLadder}")
-            } else {
+            afterSnakeOrLadder != null ->
                 Triple(afterSnakeOrLadder, GameEvent.SlidDownSnake(newPosition, afterSnakeOrLadder),
                     "\uD83D\uDC0D ${player.name} digigit ular! ${newPosition} → ${afterSnakeOrLadder}")
-            }
-        } else {
-            Triple(newPosition, GameEvent.Normal, "${player.name} maju ke kotak $newPosition")
+            else ->
+                Triple(newPosition, GameEvent.Normal, "${player.name} maju ke $newPosition")
         }
 
-        val movedPlayer = player.copy(position = finalPosition, consecutiveSixes = sixCount)
-        val newPlayers = state.players.toMutableList()
-        newPlayers[state.currentPlayerIndex] = movedPlayer
+        // Tambah path ke posisi akhir (setelah ular/tangga)
+        val fullPath = stepPath.toMutableList()
+        if (finalPos != newPosition) {
+            fullPath.add(finalPos)
+        }
 
-        // --- ATURAN: Dapat 6 → giliran lagi (turnStartPosition tetap) ---
-        val phase: GamePhase
-        val nextIndex: Int
-        val nextTurnStart: Int
-        val extraMsg: String
+        val movedPlayer = player.copy(position = finalPos, consecutiveSixes = sixCount)
+        val newPlayers = state.players.toMutableList().also { it[state.currentPlayerIndex] = movedPlayer }
 
         if (roll == 6) {
-            // Same player rolls again — turnStartPosition stays
-            phase = GamePhase.EXTRA_TURN
-            nextIndex = state.currentPlayerIndex
-            nextTurnStart = state.turnStartPosition
-            extraMsg = "\n\uD83C\uDFB2 DAPAT 6! Lempar lagi!"
-        } else {
-            // Next player's turn — snapshot their position
-            val nextIdx = nextPlayerIndex(state.currentPlayerIndex, state.players.size)
-            phase = GamePhase.ROLLING
-            nextIndex = nextIdx
-            nextTurnStart = newPlayers[nextIdx].position
-            extraMsg = ""
+            return state.copy(
+                phase = GamePhase.ANIMATING, players = newPlayers,
+                currentPlayerIndex = state.currentPlayerIndex, diceResult = roll,
+                event = event, message = msg + "\n\uD83C\uDFB2 DAPAT 6! Lempar lagi!",
+                stepPath = fullPath, stepIndex = -1
+            )
         }
 
+        val nextIdx = nextPlayerIndex(state.currentPlayerIndex, state.players.size)
         return state.copy(
-            phase = phase,
-            players = newPlayers,
-            currentPlayerIndex = nextIndex,
-            turnStartPosition = nextTurnStart,
-            diceResult = roll,
-            event = event,
-            message = msg + extraMsg
+            phase = GamePhase.ANIMATING, players = newPlayers,
+            currentPlayerIndex = nextIdx, turnStartPosition = newPlayers[nextIdx].position,
+            diceResult = roll, event = event, message = msg,
+            stepPath = fullPath, stepIndex = -1
         )
     }
 
-    /** Hitung pemain berikutnya (clockwise). */
-    private fun nextPlayerIndex(current: Int, totalPlayers: Int): Int {
-        return (current + 1) % totalPlayers
+    /**
+     * Menggerakkan pion satu langkah dalam animasi.
+     * Return state dengan stepIndex+1 dan player.position di-update ke langkah tersebut.
+     */
+    fun advanceStep(state: GameState): GameState {
+        val path = state.stepPath
+        if (path.isEmpty() || state.stepIndex >= path.lastIndex) return state
+
+        val nextStepIdx = state.stepIndex + 1
+        val stepPos = path[nextStepIdx]
+        val newPlayers = state.players.toMutableList()
+        val player = newPlayers[state.currentPlayerIndex]
+        newPlayers[state.currentPlayerIndex] = player.copy(position = stepPos)
+
+        val done = (nextStepIdx >= path.lastIndex)
+
+        return state.copy(
+            players = newPlayers,
+            stepIndex = nextStepIdx,
+            phase = if (done && state.event is GameEvent.Won) GamePhase.GAME_OVER
+                    else if (done) GamePhase.ROLLING
+                    else GamePhase.ANIMATING
+        )
     }
+
+    private fun nextPlayerIndex(current: Int, total: Int) = (current + 1) % total
 }

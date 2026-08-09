@@ -14,181 +14,122 @@ import com.ulartangga.game.domain.model.*
 import com.ulartangga.game.ui.component.BoardView
 import com.ulartangga.game.ui.component.DiceView
 
-/**
- * Layar utama saat game berlangsung.
- * Menampilkan papan, info pemain, dadu, dan log.
- */
 @Composable
 fun GameScreen(
     gameState: GameState,
     isCurrentPlayerAI: Boolean,
+    isAnimating: Boolean,
     onRollDice: () -> Unit,
+    onRestart: () -> Unit,
     onQuit: () -> Unit
 ) {
     val state = gameState
     val currentPlayer = state.players[state.currentPlayerIndex]
+    var muteSound by remember { mutableStateOf(false) }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // --- Info Pemain (compact, atas layar) ---
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+
+            // ─── TOOLBAR POJOK KANAN ATAS ───
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                IconButton(onClick = { muteSound = !muteSound }) {
+                    Text(if (muteSound) "\uD83D\uDD07" else "\uD83D\uDD0A", fontSize = 20.sp)
+                }
+                IconButton(onClick = onRestart) {
+                    Text("\uD83D\uDD04", fontSize = 20.sp)
+                }
+                IconButton(onClick = onQuit) {
+                    Text("\uD83C\uDFE0", fontSize = 20.sp)
+                }
+            }
+
+            // ─── INFO PEMAIN ───
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly) {
                 state.players.forEachIndexed { index, player ->
-                    val tokenEmoji = TokenType.entries[player.tokenIndex].emoji
                     val isActive = index == state.currentPlayerIndex
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = if (isActive) "$tokenEmoji ⬅" else tokenEmoji,
-                            fontSize = if (isActive) 22.sp else 18.sp
-                        )
-                        Text(
-                            text = "${player.name.take(6)}",
-                            fontSize = 11.sp,
-                            color = if (isActive)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onBackground
-                        )
-                        Text(
-                            text = "Kotak ${player.position}",
-                            fontSize = 10.sp
-                        )
+                        Text(TokenType.entries[player.tokenIndex].emoji,
+                            fontSize = if (isActive) 24.sp else 18.sp)
+                        Text("${player.name.take(6)}", fontSize = 11.sp,
+                            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isActive) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onBackground)
+                        Text("Kotak ${player.position}", fontSize = 10.sp)
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
 
-            // --- Papan Permainan ---
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                BoardView(
-                    board = Board(),
-                    players = state.players
-                )
+            // ─── PAPAN ───
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                BoardView(board = Board(), players = state.players)
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
 
-            // --- Pesan / Event ---
+            // ─── PESAN ───
             if (state.message.isNotEmpty()) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
-                ) {
-                    Text(
-                        text = state.message,
-                        modifier = Modifier.padding(12.dp),
-                        fontSize = 14.sp,
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                Card(Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                    Text(state.message, Modifier.padding(10.dp), fontSize = 13.sp, textAlign = TextAlign.Center)
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(Modifier.height(4.dp))
             }
 
-            // --- Dadu & Tombol ---
+            // ─── KONTROL BAWAH ───
             when (state.phase) {
                 GamePhase.ROLLING, GamePhase.EXTRA_TURN -> {
-                    Text(
-                        text = "\uD83C\uDFB2 Giliran: ${currentPlayer.name}",
-                        fontSize = 16.sp,
-                        style = MaterialTheme.typography.titleLarge
-                    )
+                    Text("\uD83C\uDFB2 Giliran: ${currentPlayer.name}", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(4.dp))
 
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    if (isCurrentPlayerAI) {
-                        // AI — tampilkan tombol "auto", atau auto-roll dengan delay
-                        Text("${currentPlayer.name} sedang berpikir...", fontSize = 14.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
+                    if (isCurrentPlayerAI || isAnimating) {
+                        state.diceResult?.let { DiceView(value = it, size = 70.dp) }
+                        Spacer(Modifier.height(4.dp))
+                        Text(if (isAnimating) "Pion bergerak..." else "AI melempar...", fontSize = 13.sp)
+                    } else {
                         Button(
                             onClick = onRollDice,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.secondary
-                            )
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp).height(68.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp, pressedElevation = 2.dp)
                         ) {
-                            Text("Lihat Hasil Dadu AI")
+                            Text("\uD83C\uDFB2  LEMPAR DADU", fontSize = 22.sp, fontWeight = FontWeight.Bold)
                         }
-                    } else {
-                        // Tombol dadu besar — ramah jari anak-anak
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Button(
-                                onClick = onRollDice,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(72.dp),
-                                shape = RoundedCornerShape(20.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.secondary
-                                ),
-                                elevation = ButtonDefaults.buttonElevation(
-                                    defaultElevation = 6.dp,
-                                    pressedElevation = 2.dp
-                                )
-                            ) {
-                                Text(
-                                    text = "\uD83C\uDFB2  LEMPAR DADU",
-                                    fontSize = 22.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-
-                    // Tampilkan hasil dadu sebelumnya
-                    state.diceResult?.let { result ->
-                        Spacer(modifier = Modifier.height(8.dp))
-                        DiceView(value = result)
                     }
                 }
 
-                GamePhase.MOVING -> {
-                    Text("Pion bergerak...", fontSize = 14.sp)
-                    // TODO: Animasi gerak pion
+                GamePhase.ANIMATING -> {
+                    state.diceResult?.let { DiceView(value = it, size = 70.dp) }
+                    Spacer(Modifier.height(4.dp))
+                    Text("\uD83C\uDFB2 Dadu: ${state.diceResult ?: "?"}", fontSize = 14.sp)
+                    Text("Pion bergerak selangkah demi selangkah...", fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f))
                 }
 
                 GamePhase.GAME_OVER -> {
-                    Text(
-                        text = "\uD83C\uDFC6 ${state.winner?.name ?: "?"} MENANG! \uD83C\uDFC6",
-                        fontSize = 28.sp,
-                        style = MaterialTheme.typography.displayLarge,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Button(onClick = onQuit) {
-                        Text("🏠 Kembali ke Menu")
+                    Text("\uD83C\uDFC6 ${state.winner?.name ?: "?"} MENANG! \uD83C\uDFC6",
+                        fontSize = 26.sp, fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.secondary)
+                    Spacer(Modifier.height(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Button(onClick = onRestart,
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                        ) { Text("\uD83D\uDD04 Main Lagi") }
+                        Button(onClick = onQuit) { Text("\uD83C\uDFE0 Menu") }
                     }
                 }
 
-                GamePhase.SETUP -> {
-                    // Seharusnya gak sampai sini
-                    Text("Setup...")
-                }
+                GamePhase.SETUP -> { Text("Setup...") }
             }
+
+            Spacer(Modifier.height(8.dp))
         }
     }
 }
