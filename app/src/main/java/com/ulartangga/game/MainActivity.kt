@@ -11,113 +11,63 @@ import com.ulartangga.game.ui.theme.UlarTanggaTheme
 import com.ulartangga.game.ui.viewmodel.GameViewModel
 
 class MainActivity : ComponentActivity() {
-
     private val gameViewModel = GameViewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
         setContent {
-            UlarTanggaTheme {
-                MainApp(gameViewModel = gameViewModel)
-            }
+            UlarTanggaTheme { MainApp(gameViewModel = gameViewModel) }
         }
     }
 }
 
-/**
- * Root composable — navigasi antar screen (tanpa Navigation library,
- * pakai state sederhana biar ringan).
- */
 @Composable
 fun MainApp(gameViewModel: GameViewModel) {
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
-
     val gameState by gameViewModel.gameState.collectAsState()
     val playersSetup by gameViewModel.playersSetup.collectAsState()
-    val isAnimating by gameViewModel.isAnimating.collectAsState()
 
     when (currentScreen) {
-        Screen.Home -> {
-            HomeScreen(
-                onMainBareng = {
-                    gameViewModel.configurePlayers(playerCount = 2, aiCount = 0)
-                    currentScreen = Screen.Setup(isVsAI = false)
-                },
-                onMainVsKomputer = {
-                    gameViewModel.configurePlayers(playerCount = 2, aiCount = 1)
-                    currentScreen = Screen.Setup(isVsAI = true)
-                },
-                onPengaturan = { currentScreen = Screen.Settings },
-                onCaraBermain = { currentScreen = Screen.HowToPlay }
-            )
-        }
-
+        Screen.Home -> HomeScreen(
+            onMainBareng = {
+                gameViewModel.configurePlayers(2, 0)
+                currentScreen = Screen.Setup(false)
+            },
+            onMainVsKomputer = {
+                gameViewModel.configurePlayers(2, 1)
+                currentScreen = Screen.Setup(true)
+            },
+            onPengaturan = { currentScreen = Screen.Settings },
+            onCaraBermain = { currentScreen = Screen.HowToPlay }
+        )
         is Screen.Setup -> {
-            val setupScreen = currentScreen as Screen.Setup
+            val s = currentScreen as Screen.Setup
             SetupScreen(
-                isVsAI = setupScreen.isVsAI,
-                playersSetup = playersSetup,
-                onUpdatePlayerName = { index, name ->
-                    gameViewModel.updatePlayerName(index, name)
-                },
-                onUpdatePlayerToken = { index, tokenIndex ->
-                    gameViewModel.updatePlayerToken(index, tokenIndex)
-                },
-                onConfigurePlayers = { count, aiCount ->
-                    gameViewModel.configurePlayers(count, aiCount)
-                },
-                onStartGame = {
-                    gameViewModel.startGame()
-                    currentScreen = Screen.Game
-                },
-                onBack = {
-                    gameViewModel.resetGame()
-                    currentScreen = Screen.Home
-                }
+                isVsAI = s.isVsAI, playersSetup = playersSetup,
+                onUpdatePlayerName = { i, n -> gameViewModel.updatePlayerName(i, n) },
+                onUpdatePlayerToken = { i, t -> gameViewModel.updatePlayerToken(i, t) },
+                onConfigurePlayers = { c, a -> gameViewModel.configurePlayers(c, a) },
+                onStartGame = { gameViewModel.startGame(); currentScreen = Screen.Game },
+                onBack = { gameViewModel.resetGame(); currentScreen = Screen.Home }
             )
         }
-
-        Screen.Game -> {
-            gameState?.let { state ->
-                val currentPlayer = state.players[state.currentPlayerIndex]
-                GameScreen(
-                    gameState = state,
-                    isCurrentPlayerAI = currentPlayer.isAI,
-                    isAnimating = isAnimating,
-                    onRollDice = { gameViewModel.rollDice() },
-                    onRestart = {
-                        gameViewModel.resetGame()
-                        // Restart dengan konfigurasi yang sama: langsung start game baru
-                        // TODO: simpan last config
-                    },
-                    onQuit = {
-                        gameViewModel.resetGame()
-                        currentScreen = Screen.Home
-                    }
-                )
-            } ?: run {
-                // Fallback: kembali ke home kalau state null
-                LaunchedEffect(Unit) { currentScreen = Screen.Home }
-            }
-        }
-
-        Screen.HowToPlay -> {
-            HowToPlayScreen(onBack = { currentScreen = Screen.Home })
-        }
-
-        Screen.Settings -> {
-            SettingsScreen(
-                soundEnabled = true,
-                onSoundToggle = { /* TODO */ },
-                bgmEnabled = true,
-                onBgmToggle = { /* TODO */ },
-                volume = 80,
-                onVolumeChange = { /* TODO */ },
-                onBack = { currentScreen = Screen.Home }
+        Screen.Game -> gameState?.let { state ->
+            GameScreen(
+                gameState = state,
+                isCurrentPlayerAI = state.players[state.currentPlayerIndex].isAI,
+                onRollDice = { gameViewModel.rollDice() },
+                onRestart = { gameViewModel.startGame() },
+                onQuit = { gameViewModel.resetGame(); currentScreen = Screen.Home }
             )
-        }
+        } ?: run { LaunchedEffect(Unit) { currentScreen = Screen.Home } }
+        Screen.HowToPlay -> HowToPlayScreen(onBack = { currentScreen = Screen.Home })
+        Screen.Settings -> SettingsScreen(
+            soundEnabled = true, onSoundToggle = {},
+            bgmEnabled = true, onBgmToggle = {},
+            volume = 80, onVolumeChange = {},
+            onBack = { currentScreen = Screen.Home }
+        )
     }
 }
 

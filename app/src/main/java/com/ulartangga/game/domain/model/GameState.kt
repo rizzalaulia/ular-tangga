@@ -1,8 +1,5 @@
 package com.ulartangga.game.domain.model
 
-/**
- * Status game saat ini — immutable state.
- */
 data class GameState(
     val phase: GamePhase,
     val players: List<Player>,
@@ -12,16 +9,14 @@ data class GameState(
     val event: GameEvent? = null,
     val winner: Player? = null,
     val message: String = "",
-    /** Posisi intermediate untuk animasi stepping (inclusive start → exclusive end) */
-    val stepPath: List<Int> = emptyList(),
-    /** Index terakhir yang sudah dianimasi di stepPath (-1 = belum mulai) */
-    val stepIndex: Int = -1
+    /** Posisi yang sedang dianimasi (-1 = tidak ada animasi) */
+    val animatingPosition: Int = -1
 )
 
 enum class GamePhase {
     SETUP,
     ROLLING,
-    ANIMATING,          // Pion sedang animasi step-by-step
+    ANIMATING,
     EXTRA_TURN,
     GAME_OVER
 }
