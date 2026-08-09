@@ -1,10 +1,12 @@
 package com.ulartangga.game.ui.screen
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -125,14 +127,33 @@ fun GameScreen(
                             Text("Lihat Hasil Dadu AI")
                         }
                     } else {
-                        Button(
-                            onClick = onRollDice,
-                            modifier = Modifier.size(100.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.secondary
-                            )
+                        // Tombol dadu besar — ramah jari anak-anak
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 32.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text("\uD83C\uDFB2\nLEMPAR", fontSize = 16.sp, textAlign = TextAlign.Center)
+                            Button(
+                                onClick = onRollDice,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(72.dp),
+                                shape = RoundedCornerShape(20.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondary
+                                ),
+                                elevation = ButtonDefaults.buttonElevation(
+                                    defaultElevation = 6.dp,
+                                    pressedElevation = 2.dp
+                                )
+                            ) {
+                                Text(
+                                    text = "\uD83C\uDFB2  LEMPAR DADU",
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
 
