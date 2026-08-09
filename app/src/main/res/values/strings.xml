@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Ular Tangga</string>
+    <string name="main_bareng">Main Bareng</string>
+    <string name="main_vs_komputer">Main vs Komputer</string>
+    <string name="pengaturan">Pengaturan</string>
+    <string name="cara_bermain">Cara Bermain</string>
+    <string name="lempar_dadu">LEMPAR</string>
+    <string name="mulai_main">MULAI MAIN!</string>
+    <string name="kembali">Kembali</string>
+    <string name="kembali_menu">Kembali ke Menu</string>
+    <string name="giliran">Giliran</string>
+    <string name="menang">MENANG!</string>
+    <string name="dapat_enam">DAPAT 6! Lempar lagi!</string>
+    <string name="tiga_enam">3x 6! Giliran batal.</string>
+</resources>

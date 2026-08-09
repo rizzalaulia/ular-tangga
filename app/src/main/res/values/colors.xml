@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Background -->
+    <color name="blue_sky">#FF87CEEB</color>
+    <color name="green_grass">#FF7BC67E</color>
+    <color name="soft_yellow">#FFFFF8E1</color>
+
+    <!-- Papan -->
+    <color name="tile_even">#FFF5E6CC</color>
+    <color name="tile_odd">#FFC8E6C9</color>
+
+    <!-- Ular & Tangga -->
+    <color name="snake_red">#FFFF7043</color>
+    <color name="ladder_brown">#FF8D6E63</color>
+
+    <!-- UI -->
+    <color name="button_blue">#FF42A5F5</color>
+    <color name="text_dark">#FF3E2723</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="light_gray">#FFF5F5F5</color>
+
+    <!-- Token -->
+    <color name="token_red">#FFEF5350</color>
+    <color name="token_blue">#FF42A5F5</color>
+    <color name="token_green">#FF66BB6A</color>
+    <color name="token_yellow">#FFFFEE58</color>
+    <color name="token_purple">#FFAB47BC</color>
+</resources>
